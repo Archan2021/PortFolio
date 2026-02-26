@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app import models, schemas, auth
+from fastapi import HTTPException
 
 router = APIRouter()
 
@@ -31,3 +32,26 @@ def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db.refresh(db_user)
 
     return {"message": "User created"}
+@router.post("/login")
+def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
+    # Find user in database
+    db_user = db.query(models.User).filter(models.User.email == user.email).first()
+
+    # Check if user exists
+    if not db_user:
+        raise HTTPException(status_code=400, detail="Invalid email or password")
+
+    # Verify password
+    if not auth.verify_password(user.password, db_user.password):
+        raise HTTPException(status_code=400, detail="Invalid email or password")
+
+    # Create JWT token
+    access_token = auth.create_access_token(
+        data={"sub": db_user.email}
+    )
+
+    # Return token
+    return {
+        "access_token": access_token,
+        "token_type": "bearer"
+    }

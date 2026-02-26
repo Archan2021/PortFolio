@@ -5,6 +5,8 @@ from app.routes import router
 
 models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI()
+# creates application instance receives requests, sends responses and handles routes.
+app = FastAPI() 
 
+#includes the router from routes.py to the main application instance. Without this no endpoints will work.
 app.include_router(router)

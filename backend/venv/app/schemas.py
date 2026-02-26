@@ -8,3 +8,7 @@ class UserCreate(BaseModel):
     company_name: str
     email: EmailStr
     password: constr(min_length=6)
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
