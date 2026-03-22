@@ -3,8 +3,13 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app import models, schemas, auth
 from fastapi import HTTPException
+from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordRequestForm
 
 router = APIRouter()
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
+
 
 def get_db():
     db = SessionLocal()
@@ -33,25 +38,54 @@ def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
     return {"message": "User created"}
 @router.post("/login")
-def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
-    # Find user in database
-    db_user = db.query(models.User).filter(models.User.email == user.email).first()
+def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db)
+):
+    db_user = db.query(models.User).filter(
+        models.User.email == form_data.username.lower()
+    ).first()
 
-    # Check if user exists
     if not db_user:
-        raise HTTPException(status_code=400, detail="Invalid email or password")
+        raise HTTPException(status_code=400, detail="Invalid credentials")
 
-    # Verify password
-    if not auth.verify_password(user.password, db_user.password):
-        raise HTTPException(status_code=400, detail="Invalid email or password")
+    if not auth.verify_password(form_data.password, db_user.password):
+        raise HTTPException(status_code=400, detail="Invalid credentials")
 
-    # Create JWT token
     access_token = auth.create_access_token(
         data={"sub": db_user.email}
     )
 
-    # Return token
     return {
         "access_token": access_token,
         "token_type": "bearer"
+    }
+    
+def get_current_user(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+):
+    email = auth.verify_access_token(token)
+
+    user = db.query(models.User).filter(
+        models.User.email == email
+    ).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found"
+        )
+
+    return user
+
+@router.get("/profile")
+def get_profile(current_user: models.User = Depends(get_current_user)):
+    return {
+        "first_name": current_user.first_name,
+        "last_name": current_user.last_name,
+        "email": current_user.email,
+        "phone": current_user.phone,
+        "job_role": current_user.job_role,
+        "company_name": current_user.company_name
     }
