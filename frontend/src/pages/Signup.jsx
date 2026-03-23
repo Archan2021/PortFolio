@@ -1,13 +1,21 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export default function Signup() {
+  const navigate = useNavigate();
+
+  const handleSignup = (e) => {
+    e.preventDefault();
+    localStorage.setItem('isLoggedIn', 'true');
+    navigate('/blogs');
+  };
+
   return (
     <div className="signup-page lowercase mt-12">
       <h2 className="section-header">signup</h2>
       <p className="text-secondary mb-6">create a new account to join the network.</p>
       
       <div className="form-container" style={{ margin: '0' }}>
-        <form onSubmit={(e) => e.preventDefault()}>
+        <form onSubmit={handleSignup}>
           <div className="form-group">
             <label className="form-label">full name</label>
             <input type="text" className="form-input" placeholder="archan bose" />
